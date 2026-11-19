@@ -14,20 +14,61 @@ void main() async {
   // Wajib karena main() memakai await
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Siapkan Hive dan buka box "favorites" (tempat menyimpan anime favorit)
-  await Hive.initFlutter();
-  await Hive.openBox('favorites');
+  try {
+    // Siapkan Hive
+    await Hive.initFlutter();
 
-  // Cek SharedPreferences: apakah user sudah pernah login?
-  final prefs = await SharedPreferences.getInstance();
-  final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    // Buka box favorit (tempat menyimpan anime favorit)
+    try {
+      await Hive.openBox(favoriteBoxName);
+    } catch (e) {
+      // Box rusak / tidak bisa dibaca -> hapus lalu buat ulang
+      await Hive.deleteBoxFromDisk(favoriteBoxName);
+      await Hive.openBox(favoriteBoxName);
+    }
 
-  // Daftarkan controller yang dipakai di banyak halaman (cukup sekali di sini)
-  Get.put(AuthController());
-  Get.put(FavoriteController());
-  Get.put(AnimeController());
+    // Cek SharedPreferences: apakah user sudah pernah login?
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
 
-  runApp(MainApp(isLoggedIn: isLoggedIn));
+    // Daftarkan controller yang dipakai di banyak halaman (cukup sekali di sini)
+    Get.put(AuthController());
+    Get.put(FavoriteController());
+    Get.put(AnimeController());
+
+    runApp(MainApp(isLoggedIn: isLoggedIn));
+  } catch (e, stackTrace) {
+    // Kalau startup gagal, tampilkan penyebabnya di layar
+    // (supaya aplikasi tidak diam di logo / layar kosong)
+    debugPrint('Gagal memulai aplikasi: $e\n$stackTrace');
+    runApp(ErrorApp(message: '$e'));
+  }
+}
+
+// Layar yang tampil kalau startup gagal
+class ErrorApp extends StatelessWidget {
+  final String message;
+
+  const ErrorApp({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SelectableText(
+              'Gagal memulai aplikasi:\n\n$message',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MainApp extends StatelessWidget {

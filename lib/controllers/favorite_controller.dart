@@ -2,8 +2,10 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/anime.dart';
 
+const String favoriteBoxName = 'anime_favorites';
+
 class FavoriteController extends GetxController {
-  final Box box = Hive.box('favorites');
+  final Box box = Hive.box(favoriteBoxName);
 
   final favorites = <Anime>[].obs;
 
